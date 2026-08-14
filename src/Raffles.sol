@@ -97,6 +97,18 @@ contract Raffles is VRFConsumerBaseV2Plus {
         emit RaffleEntered(msg.sender);
     }
 
+    /// @notice Called by Chainlink Automation nodes to check if a raffle draw is needed.
+    /// @dev Implements `AutomationCompatibleInterface`.
+    ///
+    /// ### Chainlink Automation Setup Instructions:
+    /// 1. Go to [automation.chain.link](https://automation.chain.link/) and connect your wallet.
+    /// 2. Click **Register new Upkeep** and select **Custom logic**.
+    /// 3. Provide the deployed address of this `Raffle` contract.
+    /// 4. Set the **Gas limit** (e.g., `500,000` gas).
+    /// 5. Fund the upkeep with LINK tokens and confirm the registration.
+    ///
+    /// @return upkeepNeeded True if time has passed, state is OPEN, and contract has ETH & players.
+    /// @return performData Unused in this implementation.
     function checkUpkeep(
         bytes memory /* checkData */
     )
@@ -170,5 +182,11 @@ contract Raffles is VRFConsumerBaseV2Plus {
      */
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
+    }
+    function getRaffleState() external view returns (RaffleState) {
+        return s_raffleState;
+    }
+    function getPlayers(uint256 indexOfPlayers) external view returns (address ) {
+        return s_players[indexOfPlayers];
     }
 }

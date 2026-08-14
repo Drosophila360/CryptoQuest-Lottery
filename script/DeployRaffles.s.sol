@@ -13,16 +13,18 @@ contract DeployRaffles is Script {
         HelperConfig helperConfig = new HelperConfig();
         // local => deploy mocks
         // sepolia => get sepolia config
-        HelperConfig.NetworkConfig memory Config = helperConfig.getConfig();
+        HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
+
+        if (config.subscriptionId == 0) {}
 
         vm.startBroadcast();
         Raffles raffles = new Raffles(
-            Config.entranceFee,
-            Config.interval,
-            Config.vrfCoordinator,
-            Config.keyHash,
-            Config.subscriptionId,
-            Config.callbackGasLimit
+            config.entranceFee,
+            config.interval,
+            config.vrfCoordinator,
+            config.keyHash,
+            config.subscriptionId,
+            config.callbackGasLimit
         );
         vm.stopBroadcast();
         return (raffles, helperConfig);

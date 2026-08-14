@@ -6,13 +6,14 @@ import {Script} from "forge-std/Script.sol";
 import {Raffles} from "../src/Raffles.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
-
 abstract contract Constants {
-    /**VRF Constants*/
+    /**
+     * VRF Constants
+     */
     uint96 public constant MOCK_BASE_FEE = 0.25 ether;
     uint32 public constant MOCK_GAS_LIMIT_LINK = 1e9;
-    int public constant MOCK_WEI_PER_UNIT_LINK = 4e15;
-    
+    int256 public constant MOCK_WEI_PER_UNIT_LINK = 4e15;
+
     uint256 public constant SEPOLIA_ETH_CHAIN_ID = 1115511;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
     uint256 public constant ENTRANCE_FEE = 1e16;
@@ -23,11 +24,12 @@ abstract contract Constants {
     uint256 public constant SUBSCRIPTION_ID = 0x0;
 }
 
-
 contract HelperConfig is Constants, Script {
-    /** Errors */
+    /**
+     * Errors
+     */
     error HelperConfig__InvalidChainId();
-    
+
     struct NetworkConfig {
         uint256 entranceFee;
         uint256 interval;
@@ -77,11 +79,8 @@ contract HelperConfig is Constants, Script {
 
         // deploy mocks
         vm.startBroadcast();
-        VRFCoordinatorV2_5Mock vrfCoordinatorMock = new VRFCoordinatorV2_5Mock(
-            MOCK_BASE_FEE,
-            MOCK_GAS_LIMIT_LINK,
-            MOCK_WEI_PER_UNIT_LINK
-        );
+        VRFCoordinatorV2_5Mock vrfCoordinatorMock =
+            new VRFCoordinatorV2_5Mock(MOCK_BASE_FEE, MOCK_GAS_LIMIT_LINK, MOCK_WEI_PER_UNIT_LINK);
         vm.stopBroadcast();
 
         LocalNetworkConfig = NetworkConfig({
@@ -95,5 +94,4 @@ contract HelperConfig is Constants, Script {
 
         return LocalNetworkConfig;
     }
-
 }
