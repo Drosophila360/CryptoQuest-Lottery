@@ -84,6 +84,7 @@ contract Raffles is VRFConsumerBaseV2Plus {
      */
     event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     function enterRaffle() external payable {
         //require(msg.value >= i_entranceFee, "Not enough ETH to enter raffle");
@@ -148,8 +149,10 @@ contract Raffles is VRFConsumerBaseV2Plus {
             numWords: NUM_WORDS,
             extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
         });
-        //uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
-        s_vrfCoordinator.requestRandomWords(request);
+        //captures the requestId returned by the VRF Coordinator
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
+        //emit your event passing the requestId
+        emit RequestedRaffleWinner(requestId);
     }
 
     function fulfillRandomWords(
@@ -183,10 +186,16 @@ contract Raffles is VRFConsumerBaseV2Plus {
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
     }
+
     function getRaffleState() external view returns (RaffleState) {
         return s_raffleState;
     }
-    function getPlayers(uint256 indexOfPlayers) external view returns (address ) {
+
+    function getPlayers(uint256 indexOfPlayers) external view returns (address) {
         return s_players[indexOfPlayers];
+    }
+
+    function getSubscriptionId() external view returns (uint256) {
+        return i_subscriptionId;
     }
 }

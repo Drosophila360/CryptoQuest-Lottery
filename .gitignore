@@ -18,3 +18,9 @@ docs/
 .env
 .env.*
 !.env.example
+
+#Ignores Libs
+lib/
+broadcast/
+coverage.txt
+
