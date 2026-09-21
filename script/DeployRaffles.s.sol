@@ -5,7 +5,9 @@ pragma solidity ^0.8.20;
 import {Script} from "forge-std/Script.sol";
 import {Raffles} from "../src/Raffles.sol";
 import {HelperConfig} from "../script/HelperConfig.s.sol";
-import {CreateSubscription, FundSubscription, AddConsumer} from "../script/Interactions.s.sol";
+import {CreateSubscription} from "../script/Interactions/CreateSubscription.s.sol";
+import {FundSubscription} from "../script/Interactions/FundSubscription.s.sol";
+import {AddConsumer} from "../script/Interactions/AddCosumer.s.sol";
 
 contract DeployRaffles is Script {
     //Deploys Raffles contract onchain

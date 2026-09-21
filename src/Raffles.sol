@@ -1,25 +1,4 @@
-// Layout of Contract:
-// version
-// imports
-// errors
-// interfaces, libraries, contracts
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// view & pure functions
 //SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.20;
 
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
@@ -33,35 +12,44 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
  */
 
 contract Raffles is VRFConsumerBaseV2Plus {
-    /**
-     * errors
-     */
+    /*//////////////////////////////////////////////////////////////
+                            ERRORS
+    //////////////////////////////////////////////////////////////*/
+    /// @notice Thrown when ETH sent is less than the required entrance fee.
     error Raffles__NotEnoughETHEntered();
+    /// @notice Thrown when checkUpkeep returns false during performUpkeep execution.
+    /// @param currentBalance Current balance of the contract in wei.
+    /// @param numPlayers Current number of registered players.
+    /// @param raffleState Current state of the raffle (0 = OPEN, 1 = CALCULATING_WINNER).
     error Raffles__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
+    /// @notice Thrown when the ETH transfer to the winning address fails.
     error Raffles__TransferFailed();
+    /// @notice Thrown when a player attempts to enter the raffle while it is not in the OPEN state.
     error Raffles__RaffleNotOpen();
 
-    /**
-     * Type declarations
-     */
+    /*//////////////////////////////////////////////////////////////
+                            TYPE DECLARATIONS
+    //////////////////////////////////////////////////////////////*/
+    /// @notice Represents the operational state of the raffle.
     enum RaffleState {
         OPEN,
         CALCULATING_WINNER
     }
-    /**
-     * State variables
-     */
+    
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private constant NUM_WORDS = 1;
-    uint256 private immutable i_entranceFee;
-    uint256 private immutable i_interval;
-    address payable[] private s_players;
-    bytes32 private immutable i_keyHash;
-    uint32 private immutable i_callbackGasLimit;
-    uint256 private immutable i_subscriptionId;
-    uint256 private s_lasttimestamp;
-    address private s_recentWinner;
-    RaffleState private s_raffleState;
+    uint256 private immutable I_ENTRANCE_FEE;
+    uint256 private immutable I_INTERVAL;
+    address payable[] private sPlayers;
+    bytes32 private immutable I_KEY_HASH;
+    uint32 private immutable I_CALLBACK_GAS_LIMIT;
+    uint256 private immutable I_SUBSCRIPTION_ID;
+    uint256 private sLastTimestamp;
+    address private sRecentWinner;
+    RaffleState private sRaffleState;
 
     constructor(
         uint256 entranceFee,
@@ -71,45 +59,59 @@ contract Raffles is VRFConsumerBaseV2Plus {
         uint256 subscriptionId,
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2Plus(vrfCoordinator) {
-        i_entranceFee = entranceFee;
-        i_interval = interval;
-        i_callbackGasLimit = callbackGasLimit;
-        i_keyHash = keyHash;
-        i_subscriptionId = subscriptionId;
-        s_lasttimestamp = block.timestamp;
-        s_raffleState = RaffleState.OPEN;
+        I_ENTRANCE_FEE = entranceFee;
+        I_INTERVAL = interval;
+        I_CALLBACK_GAS_LIMIT = callbackGasLimit;
+        I_KEY_HASH = keyHash;
+        I_SUBSCRIPTION_ID = subscriptionId;
+        sLastTimestamp = block.timestamp;
+        sRaffleState = RaffleState.OPEN;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            EVENTS
+    //////////////////////////////////////////////////////////////*/
     /**
-     * Events
+     * @notice Emitted when a player successfully enters the raffle.
+     * @param player Address of the player who entered.
      */
     event RaffleEntered(address indexed player);
+    /**
+     * @notice Emitted when a winner is picked for the raffle.
+     * @param winner Address of the winning player.
+     */
     event WinnerPicked(address indexed winner);
+    /**
+     * @notice Emitted when a request for a raffle winner is submitted.
+     * @param requestId The ID of the request.
+     */
     event RequestedRaffleWinner(uint256 indexed requestId);
 
+    /*//////////////////////////////////////////////////////////////
+                            FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /**
+     * @notice Allows a player to enter the raffle by paying the entrance fee.
+     * @dev Reverts if msg.value is lower than entrance fee or if raffle is not OPEN.
+     */
     function enterRaffle() external payable {
         //require(msg.value >= i_entranceFee, "Not enough ETH to enter raffle");
-        if (msg.value < i_entranceFee) {
+        if (msg.value < I_ENTRANCE_FEE) {
             revert Raffles__NotEnoughETHEntered();
         }
-        if (s_raffleState != RaffleState.OPEN) {
+        if (sRaffleState != RaffleState.OPEN) {
             revert Raffles__RaffleNotOpen();
         }
-        s_players.push(payable(msg.sender));
+        sPlayers.push(payable(msg.sender));
         emit RaffleEntered(msg.sender);
     }
 
-    /// @notice Called by Chainlink Automation nodes to check if a raffle draw is needed.
-    /// @dev Implements `AutomationCompatibleInterface`.
-    ///
-    /// ### Chainlink Automation Setup Instructions:
-    /// 1. Go to [automation.chain.link](https://automation.chain.link/) and connect your wallet.
-    /// 2. Click **Register new Upkeep** and select **Custom logic**.
-    /// 3. Provide the deployed address of this `Raffle` contract.
-    /// 4. Set the **Gas limit** (e.g., `500,000` gas).
-    /// 5. Fund the upkeep with LINK tokens and confirm the registration.
-    ///
-    /// @return upkeepNeeded True if time has passed, state is OPEN, and contract has ETH & players.
-    /// @return performData Unused in this implementation.
+    /**
+     * @notice Called by Chainlink Automation nodes to check if a raffle draw should be triggered.
+     * @dev Upkeep is needed if interval time has passed, state is OPEN, and contract has ETH & players.
+     * @return upkeepNeeded True if condition for picking a winner is met.
+     * @return performData Returns dummy bytes ("0x0") as data is unused.
+     */
     function checkUpkeep(
         bytes memory /* checkData */
     )
@@ -120,15 +122,18 @@ contract Raffles is VRFConsumerBaseV2Plus {
             bytes memory /* performData */
         )
     {
-        bool timeHasPassed = (block.timestamp - s_lasttimestamp) >= i_interval;
-        bool isOpen = (s_raffleState == RaffleState.OPEN);
-        bool hasPlayers = (s_players.length > 0);
+        bool timeHasPassed = (block.timestamp - sLastTimestamp) >= I_INTERVAL;
+        bool isOpen = (sRaffleState == RaffleState.OPEN);
+        bool hasPlayers = (sPlayers.length > 0);
         bool hasBalance = (address(this).balance > 0);
         upkeepNeeded = (timeHasPassed && isOpen && hasPlayers && hasBalance);
         return (upkeepNeeded, "0x0");
     }
 
-    //get a random winner from the players array
+    /**
+     * @notice Triggers the selection of a random winner via Chainlink VRF.
+     * @dev Reverts if checkUpkeep returns false.
+     */
     function performUpkeep(
         bytes memory /* performData */
     )
@@ -137,15 +142,15 @@ contract Raffles is VRFConsumerBaseV2Plus {
         //check if enough time has passed since the last raffle
         (bool upkeepNeeded,) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert Raffles__UpkeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
+            revert Raffles__UpkeepNotNeeded(address(this).balance, sPlayers.length, uint256(sRaffleState));
         }
-        s_raffleState = RaffleState.CALCULATING_WINNER;
+        sRaffleState = RaffleState.CALCULATING_WINNER;
         //request random number from chainlink vrf
         VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
-            keyHash: i_keyHash,
-            subId: i_subscriptionId,
+            keyHash: I_KEY_HASH,
+            subId: I_SUBSCRIPTION_ID,
             requestConfirmations: REQUEST_CONFIRMATIONS,
-            callbackGasLimit: i_callbackGasLimit,
+            callbackGasLimit: I_CALLBACK_GAS_LIMIT,
             numWords: NUM_WORDS,
             extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
         });
@@ -155,6 +160,11 @@ contract Raffles is VRFConsumerBaseV2Plus {
         emit RequestedRaffleWinner(requestId);
     }
 
+    /**
+     * @notice Callback function called by Chainlink VRF to deliver random numbers.
+     * @dev Selects the winner using modulo arithmetic, resets state, and transfers balance.
+     * @param randomWords Array of random values generated by Chainlink VRF.
+     */
     function fulfillRandomWords(
         uint256,
         /* requestId */
@@ -164,38 +174,91 @@ contract Raffles is VRFConsumerBaseV2Plus {
         override
     {
         //get a random index from the players array
-        uint256 indexOfWinner = randomWords[0] % s_players.length;
-        address payable recentWinner = s_players[indexOfWinner];
-        s_recentWinner = recentWinner;
-        s_raffleState = RaffleState.OPEN;
-        //reset the players array
-        s_players = new address payable[](0);
-        s_lasttimestamp = block.timestamp;
-        emit WinnerPicked(s_recentWinner);
+        uint256 indexOfWinner = randomWords[0] % sPlayers.length;
+        address payable recentWinner = sPlayers[indexOfWinner];
+
+        //update all internal storage state first to avoid reentrancy attacks
+        sRecentWinner = recentWinner;
+        sRaffleState = RaffleState.OPEN;
+        sPlayers = new address payable[](0);
+        sLastTimestamp = block.timestamp;
+
+        //emit event after all state updates are done to avoid reentrancy attacks
+        emit WinnerPicked(recentWinner);
 
         //transfer the entire balance of the contract to the winner
+        //forge-fmt: disable-next-line low-level-calls
         (bool success,) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffles__TransferFailed();
         }
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            GETTERS
+    //////////////////////////////////////////////////////////////*/
     /**
-     * Getters
+     * @notice Returns the entrance fee required to participate in the raffle.
+     * @return The entrance fee in wei.
      */
     function getEntranceFee() external view returns (uint256) {
-        return i_entranceFee;
+        return I_ENTRANCE_FEE;
     }
 
+    /**
+     * @notice Returns the current state of the raffle.
+     * @return The RaffleState enum value.
+     */
     function getRaffleState() external view returns (RaffleState) {
-        return s_raffleState;
+        return sRaffleState;
     }
 
-    function getPlayers(uint256 indexOfPlayers) external view returns (address) {
-        return s_players[indexOfPlayers];
+    /**
+     * @notice Returns a player address at a specific index in the players array.
+     * @param indexOfPlayers Array index.
+     * @return Address of the player.
+     */
+    function getPlayer(uint256 indexOfPlayers) external view returns (address) {
+        return sPlayers[indexOfPlayers];
     }
 
+    /**
+     * @notice Returns the total number of players currently in the raffle.
+     * @return Number of players.
+     */
+    function getNumberOfPlayers(uint256 indexOfPlayers) external view returns (address) {
+        return sPlayers[indexOfPlayers];
+    }
+
+    /**
+     * @notice Returns the most recent winner of the raffle.
+     * @return The address of the recent winner.
+     */
+    function getRecentWinner() external view returns (address) {
+        return sRecentWinner;
+    }
+
+    /**
+     * @notice Returns the Chainlink VRF subscription ID.
+     * @return Subscription ID.
+     */
     function getSubscriptionId() external view returns (uint256) {
-        return i_subscriptionId;
+        return I_SUBSCRIPTION_ID;
+    }
+
+    /**
+     * @notice Returns the interval duration between raffle rounds.
+     * @return Duration in seconds.
+     */
+    function getInterval() external view returns (uint256) {
+        return I_INTERVAL;
+    }
+
+    /**
+     * @notice Returns the timestamp when the last winner was picked.
+     * @return Timestamp in seconds.
+     */
+    function getLastTimestamp() external view returns (uint256) {
+        return sLastTimestamp;
     }
 }

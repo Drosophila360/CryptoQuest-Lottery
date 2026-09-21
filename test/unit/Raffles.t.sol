@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import {Test, console, Vm} from "forge-std/Test.sol";
+import {Test,Vm} from "forge-std/Test.sol";
 import {DeployRaffles} from "../../script/DeployRaffles.s.sol";
 import {Raffles} from "../../src/Raffles.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
@@ -13,7 +13,7 @@ contract RafflesTest is Test {
     HelperConfig public helperConfig;
     HelperConfig.NetworkConfig public config;
 
-    address public PLAYER = makeAddr("player");
+    address public PLAYER;
     uint256 public constant STARTING_BALANCE = 10e18;
 
     /**
@@ -24,6 +24,7 @@ contract RafflesTest is Test {
     event RequestedRaffleWinner(uint256 indexed requestId);
 
     function setUp() public {
+        PLAYER = makeAddr("player");
         DeployRaffles deployRaffles = new DeployRaffles();
         (raffles, helperConfig) = deployRaffles.deployRafflesContract();
         //uint256 subId = raffles.getSubscriptionId();
@@ -53,7 +54,7 @@ contract RafflesTest is Test {
         //Act
         raffles.enterRaffle{value: config.entranceFee}();
         //Assert
-        address playerRecorded = raffles.getPlayers(0);
+        address playerRecorded = raffles.getNumberOfPlayers(0);
         assert(playerRecorded == PLAYER);
     }
 
@@ -106,6 +107,7 @@ contract RafflesTest is Test {
         vm.prank(PLAYER);
         raffles.enterRaffle{value: config.entranceFee}();
     }
+
     /*//////////////////////////////////////////////////////////////
                             TEST CHECK UPKEEP
     //////////////////////////////////////////////////////////////*/
@@ -118,8 +120,8 @@ contract RafflesTest is Test {
         (bool upkeepNeeded,) = raffles.checkUpkeep("");
         //assert
         assert(!upkeepNeeded);
-
     }
+
     function testCheckUpkeepReturnsFalsewhenNotOpen() public {
         //Arrange
         vm.prank(PLAYER);
