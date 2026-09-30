@@ -22,6 +22,7 @@ contract HelperConfig is Constants, Script {
         uint256 subscriptionId;
         uint32 callbackGasLimit;
         address linkToken;
+        address account;
     }
 
     NetworkConfig public localNetworkConfig;
@@ -49,7 +50,8 @@ contract HelperConfig is Constants, Script {
             keyHash: KEY_HASH,
             callbackGasLimit: CALLBACK_GAS_LIMIT,
             subscriptionId: SUBSCRIPTION_ID,
-            linkToken: LINK_TOKEN
+            linkToken: LINK_TOKEN,
+            account: ACCOUNT
         });
     }
 
@@ -70,7 +72,6 @@ contract HelperConfig is Constants, Script {
         LinkToken linkToken = new LinkToken();
         vm.stopBroadcast();
 
-
         localNetworkConfig = NetworkConfig({
             entranceFee: ENTRANCE_FEE,
             interval: INTERVAL,
@@ -78,7 +79,8 @@ contract HelperConfig is Constants, Script {
             keyHash: KEY_HASH,
             callbackGasLimit: uint32(CALLBACK_GAS_LIMIT),
             subscriptionId: 0x0,
-            linkToken: address(linkToken)
+            linkToken: address(linkToken),
+            account: DEFAULT_ACCOUNT
         });
 
         return localNetworkConfig;

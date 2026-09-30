@@ -12,14 +12,17 @@ contract AddConsumer is Script {
         HelperConfig helperConfig = new HelperConfig();
         uint256 subId = helperConfig.getConfig().subscriptionId;
         address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
-        addConsumer(mostRecentlyDeployed, vrfCoordinator, subId);
+        address account = helperConfig.getConfig().account;
+        addConsumer(mostRecentlyDeployed, vrfCoordinator, subId, account);
     }
 
-    function addConsumer(address contractToAddToVrfCoordinator, address vrfCoordinator, uint256 subId) public {
+    function addConsumer(address contractToAddToVrfCoordinator, address vrfCoordinator, uint256 subId, address account)
+        public
+    {
         console.log("Adding consumer contract: ", contractToAddToVrfCoordinator);
         console.log("To vrfCoordinator: ", vrfCoordinator);
         console.log("On chainId: ", block.chainid);
-        vm.startBroadcast();
+        vm.startBroadcast(account);
         VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, contractToAddToVrfCoordinator);
         vm.stopBroadcast();
     }

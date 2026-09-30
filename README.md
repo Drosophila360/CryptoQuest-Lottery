@@ -3,7 +3,7 @@
 A secure, on-chain raffle and lottery system built on Ethereum using Foundry, Chainlink VRF v2.5, and Chainlink Automation. Players enter by sending a ticket fee, the raffle automatically tracks upkeep criteria, and a verifiable random winner is selected without relying on centralized randomness.
 
 ![Foundry](https://img.shields.io/badge/Foundry-FFDB1C?logo=foundry&logoColor=000000)
-![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.19-363636?logo=solidity&logoColor=white)
+![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.20-363636?logo=solidity&logoColor=white)
 ![Chainlink](https://img.shields.io/badge/Chainlink-VRF%20v2.5-2A5ADA)
 
 ## Architecture & How It Works
@@ -28,7 +28,7 @@ The core flow is:
 
 ## Tech Stack & Dependencies
 
-- Solidity: `^0.8.19`
+- Solidity: `^0.8.20`
 - Foundry: `forge`, `cast`, `anvil`, `chisel`
 - Chainlink VRF v2.5: randomness oracle and coordinator integration
 - Chainlink Automation: upkeep monitoring and execution
@@ -90,9 +90,14 @@ forge test
 ```
 
 For a filtered test run:
+1. By path;
 
 ```bash
-forge test --match-path test/*.t.sol
+forge test --mp test/*.t.sol
+```
+2. By name;
+```bash
+forge test --mt <testName>
 ```
 
 ### Formatting and Documentation
@@ -146,10 +151,6 @@ ETHERSCAN_API_KEY=<YOUR_ETHERSCAN_API_KEY>
 3. Deploy using Makefile. Remember to update Makefile to match you details:
 ```bash
 make deploy-raffles
-```
-
-```bash
-forge script script/DeployRaffle.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
 ```
 
 ## Contract Reference / API
@@ -222,3 +223,8 @@ For source-level details, refer to the following:
 - `script/HelperConfig.s.sol` (chain config helper)
 - `test/` (unit and integration tests)
 - `foundry.toml` (build and test configuration)
+
+## Contact & Connect
+
+[![Gmail](https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:drosophilamelanogaster380@gmail.com)
+[![X (formerly Twitter)](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/AlexMutham75513)

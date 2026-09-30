@@ -7,7 +7,7 @@ import {Raffles} from "../src/Raffles.sol";
 import {HelperConfig} from "../script/HelperConfig.s.sol";
 import {CreateSubscription} from "../script/Interactions/CreateSubscription.s.sol";
 import {FundSubscription} from "../script/Interactions/FundSubscription.s.sol";
-import {AddConsumer} from "../script/Interactions/AddCosumer.s.sol";
+import {AddConsumer} from "../script/Interactions/AddConsumer.s.sol";
 
 contract DeployRaffles is Script {
     //Deploys Raffles contract onchain
@@ -24,13 +24,15 @@ contract DeployRaffles is Script {
         if (config.subscriptionId == 0) {
             CreateSubscription createSubscription = new CreateSubscription();
             (config.subscriptionId, config.vrfCoordinator) =
-                createSubscription.createSubscription(config.vrfCoordinator);
+                createSubscription.createSubscription(config.vrfCoordinator, config.account);
         }
         //Fund the newly created subscription
         FundSubscription fundSubscription = new FundSubscription();
-        fundSubscription.fundSubscription(config.vrfCoordinator, config.subscriptionId, config.linkToken);
+        fundSubscription.fundSubscription(
+            config.vrfCoordinator, config.subscriptionId, config.linkToken, config.account
+        );
 
-        vm.startBroadcast();
+        vm.startBroadcast(config.account);
         Raffles raffles = new Raffles(
             config.entranceFee,
             config.interval,
@@ -42,7 +44,7 @@ contract DeployRaffles is Script {
         vm.stopBroadcast();
         //Add Raffle as a consumer on the VRF Coordinator
         AddConsumer addConsumer = new AddConsumer();
-        addConsumer.addConsumer(address(raffles), config.vrfCoordinator, config.subscriptionId);
+        addConsumer.addConsumer(address(raffles), config.vrfCoordinator, config.subscriptionId, config.account);
 
         return (raffles, helperConfig);
     }

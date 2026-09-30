@@ -18,22 +18,23 @@ contract FundSubscription is Script, Constants {
          *     subId = 1;
          * }
          */
+        address account = helperConfig.getConfig().account;
         address linkToken = helperConfig.getConfig().linkToken;
-        fundSubscription(vrfCoordinator, subId, linkToken);
+        fundSubscription(vrfCoordinator, subId, linkToken, account);
     }
 
-    function fundSubscription(address vrfCoordinator, uint256 subId, address linkToken) public {
+    function fundSubscription(address vrfCoordinator, uint256 subId, address linkToken, address account) public {
         console.log("Funding subscription : ", subId);
         console.log("Using vrfCoordinator: ", vrfCoordinator);
         console.log("On chainId: ", block.chainid);
 
         if (block.chainid == LOCAL_CHAIN_ID) {
-            vm.startBroadcast();
-            VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(subId, FUND_AMOUNT);
+            vm.startBroadcast(account);
+            VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(subId, FUND_AMOUNT * 100);
             vm.stopBroadcast();
             console.log("Subscription funded");
         } else {
-            vm.startBroadcast();
+            vm.startBroadcast(account);
             LinkToken(linkToken).transferAndCall(vrfCoordinator, FUND_AMOUNT, abi.encode(subId));
             vm.stopBroadcast();
         }

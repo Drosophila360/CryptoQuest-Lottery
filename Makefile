@@ -2,6 +2,8 @@
 
 .PHONY: deploy-raffles
 
+install :; forge install cyfrin/foundry-devops && forge install smartcontractkit/chainlink-brownie-contracts && forge install foundry-rs/forge-std && forge install transmissions11/solmate
+
 deploy-raffles:
 	@forge script script/DeployRaffles.s.sol:DeployRaffles \
 		--rpc-url $(SEPOLIA_RPC_URL) \

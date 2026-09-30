@@ -35,7 +35,7 @@ contract Raffles is VRFConsumerBaseV2Plus {
         OPEN,
         CALCULATING_WINNER
     }
-    
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -258,7 +258,7 @@ contract Raffles is VRFConsumerBaseV2Plus {
      * @notice Returns the timestamp when the last winner was picked.
      * @return Timestamp in seconds.
      */
-    function getLastTimestamp() external view returns (uint256) {
+    function getLastTimeStamp() external view returns (uint256) {
         return sLastTimestamp;
     }
 }
