@@ -128,29 +128,26 @@ Required values commonly include:
 - `ENTRANCE_FEE`: raffle ticket price in wei
 - `INTERVAL`: amount of time between raffle draws or upkeep windows
 
-Local deployment scripts use Foundry cheatcodes and helper config patterns to set these values based on the selected chain. The `DeployRaffle.s.sol` script deploys the raffle contract, while `HelperConfig.s.sol` provides the chain-specific config and fallback values for local environment simulation.
+Local deployment scripts use Foundry cheatcodes and helper config patterns to set these values based on the selected chain. `DeployRaffles.s.sol` deploys the raffle contract, while `HelperConfig.s.sol` provides the chain-specific config and local mocks.
 
 Example deployment:
 
-```bash
-forge script script/DeployRaffle.s.sol
-```
+For Sepolia deployment:
 
-For a specific RPC or broadcast profile:
-1. Import Your Private Key Into Foundry Keystore:
+1. Import the funded Sepolia deployer into the Foundry keystore:
 ```bash
 cast wallet import <KEYSTORE_NAME> --interactive
 ```
-2. Configure your `.env` file:
-Copy `.env.example` to `.env` and set your keystore name and address:
+2. Set the Sepolia RPC URL and Etherscan API key in `.env`:
 ```env
-SEPOLIA_RPC_URL=//https:eth-sepolia.g.alchemy.com/v2/<YOUR_ALCHEMY_KEY>
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<YOUR_ALCHEMY_KEY>
 ETHERSCAN_API_KEY=<YOUR_ETHERSCAN_API_KEY>
 ```
+3. Set `ACCOUNT` when invoking Make to the Foundry keystore name for the address in `script/Constants.s.sol` (`ACCOUNT`). That address must have Sepolia ETH for gas and at least 5 LINK to fund the configured VRF subscription.
 
-3. Deploy using Makefile. Remember to update Makefile to match you details:
+4. Deploy using the Sepolia target:
 ```bash
-make deploy-raffles
+make deploy-raffles-sepolia
 ```
 
 ## Contract Reference / API

@@ -19,8 +19,7 @@ docs/
 .env.*
 !.env.example
 
-#Ignores Libs
-lib/
+#Ignores broadcast logs
 broadcast/
 coverage.txt
 

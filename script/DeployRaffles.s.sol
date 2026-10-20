@@ -8,10 +8,18 @@ import {HelperConfig} from "../script/HelperConfig.s.sol";
 import {CreateSubscription} from "../script/Interactions/CreateSubscription.s.sol";
 import {FundSubscription} from "../script/Interactions/FundSubscription.s.sol";
 import {AddConsumer} from "../script/Interactions/AddConsumer.s.sol";
+import {DeployRafflesLocally} from "./DeployRafflesLocally.s.sol";
+import {Constants} from "./Constants.s.sol";
 
-contract DeployRaffles is Script {
+contract DeployRaffles is Script, Constants {
     //Deploys Raffles contract onchain
     function run() external returns (Raffles, HelperConfig) {
+        if (block.chainid == LOCAL_CHAIN_ID) {
+            vm.startBroadcast(DEFAULT_ACCOUNT);
+            DeployRafflesLocally localDeployment = new DeployRafflesLocally();
+            vm.stopBroadcast();
+            return (localDeployment.raffle(), new HelperConfig());
+        }
         return deployRafflesContract();
     }
 

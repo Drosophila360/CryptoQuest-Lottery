@@ -6,6 +6,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {Constants} from "script/Constants.s.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {IVRFSubscriptionV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFSubscriptionV2Plus.sol";
 import {LinkToken} from "../../test/mocks/LinkToken.sol";
 
 contract FundSubscription is Script, Constants {
@@ -34,6 +35,12 @@ contract FundSubscription is Script, Constants {
             vm.stopBroadcast();
             console.log("Subscription funded");
         } else {
+            (uint96 subscriptionBalance,,,,) = IVRFSubscriptionV2Plus(vrfCoordinator).getSubscription(subId);
+            if (subscriptionBalance >= FUND_AMOUNT) {
+                console.log("Subscription already has enough LINK; skipping funding");
+                return;
+            }
+
             vm.startBroadcast(account);
             LinkToken(linkToken).transferAndCall(vrfCoordinator, FUND_AMOUNT, abi.encode(subId));
             vm.stopBroadcast();

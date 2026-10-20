@@ -22,10 +22,12 @@ contract Raffles is VRFConsumerBaseV2Plus {
     /// @param numPlayers Current number of registered players.
     /// @param raffleState Current state of the raffle (0 = OPEN, 1 = CALCULATING_WINNER).
     error Raffles__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
-    /// @notice Thrown when the ETH transfer to the winning address fails.
-    error Raffles__TransferFailed();
     /// @notice Thrown when a player attempts to enter the raffle while it is not in the OPEN state.
     error Raffles__RaffleNotOpen();
+    /// @notice Thrown when the caller has no prize to withdraw.
+    error Raffles__NoWinningsToWithdraw();
+    /// @notice Thrown when sending the caller's prize fails.
+    error Raffles__WithdrawalFailed();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATIONS
@@ -50,6 +52,9 @@ contract Raffles is VRFConsumerBaseV2Plus {
     uint256 private sLastTimestamp;
     address private sRecentWinner;
     RaffleState private sRaffleState;
+    uint256 private sRafflePot;
+    uint256 private sLastRequestId;
+    mapping(address => uint256) private sPendingWinnings;
 
     constructor(
         uint256 entranceFee,
@@ -81,11 +86,12 @@ contract Raffles is VRFConsumerBaseV2Plus {
      * @param winner Address of the winning player.
      */
     event WinnerPicked(address indexed winner);
-    /**
-     * @notice Emitted when a request for a raffle winner is submitted.
-     * @param requestId The ID of the request.
-     */
-    event RequestedRaffleWinner(uint256 indexed requestId);
+    /// @notice Emitted before requesting randomness for the current raffle.
+    event RaffleWinnerRequestStarted();
+    /// @notice Emitted when a raffle winner's prize is credited for withdrawal.
+    event WinningsCredited(address indexed winner, uint256 amount);
+    /// @notice Emitted when a winner withdraws their prize.
+    event WinningsWithdrawn(address indexed winner, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                             FUNCTIONS
@@ -103,6 +109,7 @@ contract Raffles is VRFConsumerBaseV2Plus {
             revert Raffles__RaffleNotOpen();
         }
         sPlayers.push(payable(msg.sender));
+        sRafflePot += msg.value;
         emit RaffleEntered(msg.sender);
     }
 
@@ -122,10 +129,11 @@ contract Raffles is VRFConsumerBaseV2Plus {
             bytes memory /* performData */
         )
     {
+        // forge-lint: disable-next-line(block-timestamp)
         bool timeHasPassed = (block.timestamp - sLastTimestamp) >= I_INTERVAL;
         bool isOpen = (sRaffleState == RaffleState.OPEN);
         bool hasPlayers = (sPlayers.length > 0);
-        bool hasBalance = (address(this).balance > 0);
+        bool hasBalance = (sRafflePot > 0);
         upkeepNeeded = (timeHasPassed && isOpen && hasPlayers && hasBalance);
         return (upkeepNeeded, "0x0");
     }
@@ -145,6 +153,9 @@ contract Raffles is VRFConsumerBaseV2Plus {
             revert Raffles__UpkeepNotNeeded(address(this).balance, sPlayers.length, uint256(sRaffleState));
         }
         sRaffleState = RaffleState.CALCULATING_WINNER;
+        // Emit before the external call so any callback or reentrant action cannot
+        // make raffle events appear ahead of the request in the transaction logs.
+        emit RaffleWinnerRequestStarted();
         //request random number from chainlink vrf
         VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
             keyHash: I_KEY_HASH,
@@ -154,10 +165,7 @@ contract Raffles is VRFConsumerBaseV2Plus {
             numWords: NUM_WORDS,
             extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
         });
-        //captures the requestId returned by the VRF Coordinator
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
-        //emit your event passing the requestId
-        emit RequestedRaffleWinner(requestId);
+        sLastRequestId = s_vrfCoordinator.requestRandomWords(request);
     }
 
     /**
@@ -186,11 +194,26 @@ contract Raffles is VRFConsumerBaseV2Plus {
         //emit event after all state updates are done to avoid reentrancy attacks
         emit WinnerPicked(recentWinner);
 
-        //transfer the entire balance of the contract to the winner
-        //forge-fmt: disable-next-line low-level-calls
-        (bool success,) = recentWinner.call{value: address(this).balance}("");
+        // Credit the winner and let them withdraw in a separate transaction.
+        uint256 prize = sRafflePot;
+        sRafflePot = 0;
+        sPendingWinnings[recentWinner] += prize;
+        emit WinningsCredited(recentWinner, prize);
+    }
+
+    /**
+     * @notice Withdraws the caller's accumulated raffle winnings.
+     * @dev Uses checks-effects-interactions to prevent reentrant double withdrawals.
+     */
+    function withdrawWinnings() external {
+        uint256 amount = sPendingWinnings[msg.sender];
+        if (amount == 0) revert Raffles__NoWinningsToWithdraw();
+
+        sPendingWinnings[msg.sender] = 0;
+        emit WinningsWithdrawn(msg.sender, amount);
+        (bool success,) = payable(msg.sender).call{value: amount}("");
         if (!success) {
-            revert Raffles__TransferFailed();
+            revert Raffles__WithdrawalFailed();
         }
     }
 
@@ -236,6 +259,16 @@ contract Raffles is VRFConsumerBaseV2Plus {
      */
     function getRecentWinner() external view returns (address) {
         return sRecentWinner;
+    }
+
+    /// @notice Returns the caller's prize amount available to withdraw.
+    function getPendingWinnings(address winner) external view returns (uint256) {
+        return sPendingWinnings[winner];
+    }
+
+    /// @notice Returns the most recent Chainlink VRF request ID.
+    function getLastRequestId() external view returns (uint256) {
+        return sLastRequestId;
     }
 
     /**
