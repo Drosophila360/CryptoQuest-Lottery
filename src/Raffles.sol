@@ -245,12 +245,9 @@ contract Raffles is VRFConsumerBaseV2Plus {
         return sPlayers[indexOfPlayers];
     }
 
-    /**
-     * @notice Returns the total number of players currently in the raffle.
-     * @return Number of players.
-     */
-    function getNumberOfPlayers(uint256 indexOfPlayers) external view returns (address) {
-        return sPlayers[indexOfPlayers];
+    /// @notice Returns the number of players currently in the raffle.
+    function getNumberOfPlayers() external view returns (uint256) {
+        return sPlayers.length;
     }
 
     /**

@@ -39,9 +39,8 @@ contract RafflesTest is Test, Constants {
     }
 
     function _requestIdFromLogs(Vm.Log[] memory entries) private view returns (uint256 requestId) {
-        bytes32 requestEvent = keccak256(
-            "RandomWordsRequested(bytes32,uint256,uint256,uint256,uint16,uint32,uint32,bytes,address)"
-        );
+        bytes32 requestEvent =
+            keccak256("RandomWordsRequested(bytes32,uint256,uint256,uint256,uint16,uint32,uint32,bytes,address)");
         for (uint256 i; i < entries.length; ++i) {
             if (entries[i].emitter == config.vrfCoordinator && entries[i].topics[0] == requestEvent) {
                 (requestId,,,,,) = abi.decode(entries[i].data, (uint256, uint256, uint16, uint32, uint32, bytes));
@@ -63,6 +62,7 @@ contract RafflesTest is Test, Constants {
         assertEq(raffles.getRecentWinner(), address(0));
         assertEq(raffles.getLastRequestId(), 0);
         assertEq(raffles.getPendingWinnings(PLAYER), 0);
+        assertEq(raffles.getNumberOfPlayers(), 0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -83,8 +83,7 @@ contract RafflesTest is Test, Constants {
         //Act
         raffles.enterRaffle{value: config.entranceFee}();
         //Assert
-        address playerRecorded = raffles.getNumberOfPlayers(0);
-        assert(playerRecorded == PLAYER);
+        assertEq(raffles.getNumberOfPlayers(), 1);
         assertEq(raffles.getPlayer(0), PLAYER);
     }
 
@@ -229,9 +228,8 @@ contract RafflesTest is Test, Constants {
         raffles.performUpkeep("");
         uint256 requestId = _requestIdFromLogs(vm.getRecordedLogs());
         uint256[] memory randomWords = new uint256[](1);
-        VRFCoordinatorV2_5Mock(config.vrfCoordinator).fulfillRandomWordsWithOverride(
-            requestId, address(raffles), randomWords
-        );
+        VRFCoordinatorV2_5Mock(config.vrfCoordinator)
+            .fulfillRandomWordsWithOverride(requestId, address(raffles), randomWords);
 
         vm.expectRevert(Raffles.Raffles__WithdrawalFailed.selector);
         vm.prank(address(rejector));
@@ -270,6 +268,7 @@ contract RafflesTest is Test, Constants {
         uint256 prize = config.entranceFee * (additionalEntrants + 1);
         assert(recentWinner == expectedWinner);
         assert(uint256(raffleState) == 0);
+        assertEq(raffles.getNumberOfPlayers(), 0);
         assert(pendingWinnings == prize);
         assert(winnerBalance == winnerStartingBalance + prize);
         assert(endingTimestamp > startingTimestamp);
